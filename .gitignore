@@ -1,4 +1,6 @@
 **/__pycache__/
 flask/
 .vscode/
+.vs/
 venv/
+app.db

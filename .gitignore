@@ -3,3 +3,4 @@ flask/
 .vscode/
 venv/
 **.db
+.vs/

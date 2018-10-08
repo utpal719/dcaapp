@@ -45,6 +45,7 @@ import numpy as np
 #     "ref": "WATER_Q"
 # }]
 @bp.route('/classical/dca/<wellName>', methods=['POST'])
+@token_auth.login_required
 def test_dca(wellName):
     supported_modes = ["cumulative", "exponential", "harmonic", "hyperbolic"]
 
@@ -56,7 +57,7 @@ def test_dca(wellName):
 
     try:
         feedDf = pd.read_sql("select readdate, oilrate, waterrate, gasrate from casedata where user='{}' and well='{}'".format(
-            'dcaappa', wellName), con=db.engine)
+            g.current_user.username, wellName), con=db.engine)
     except:
         return error_response(400, "reading from table failed")
 

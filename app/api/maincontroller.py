@@ -7,6 +7,7 @@ import pandas as pd
 import io
 import datetime
 from app.api.mldca import dodca
+from sqlalchemy import text
 
 @bp.route('/upload', methods=['POST'])
 @token_auth.login_required
@@ -132,4 +133,41 @@ def process_dca():
 
     response = jsonify(resp)
     response.headers.set("Content-Type", "application/json")
+    return response
+
+@bp.route('/datasets', methods=['GET'])
+@token_auth.login_required
+def get_all_datasets():
+    user = g.current_user.username
+    sql = text('select distinct datasetname from casedata where user=:user_name')
+    result = db.engine.execute(sql, user_name=user)
+
+    all_datasets = {}
+    for row in result:
+        datasets_arr = row[0].split(',')
+        all_datasets = {
+            'datasets': datasets_arr
+        }
+
+    response = jsonify(all_datasets)
+    response.status_code = 200
+    return response
+
+@bp.route('/wells/<datasetname>', methods=['GET'])
+@token_auth.login_required
+def get_all_wells(datasetname):
+    user = g.current_user.username
+    sql = text('select distinct well, datasetname from casedata where user=:user_name and datasetname=:dataset')
+    result = db.engine.execute(sql, user_name=user, dataset=datasetname)
+
+    all_wells = []
+    for row in result:
+        well_data = {
+            'dataset': row[1],
+            'well': row[0]
+        }
+        all_wells.append(well_data)
+
+    response = jsonify(all_wells)
+    response.status_code = 200
     return response

@@ -62,11 +62,13 @@ def dodca(df):
     percentile05 = df['prod'].quantile(0.05)
 
     ##  DELETING THE OUTLIERS 
-    df = df[df['prod']<percentile95]
-    df = df[df['prod']>percentile05]
-    ##
-    #reset index/make row order wise
-    df = df.reset_index(drop=True)
+    #Only in case of large datasets - deleting outliers for small datasets will affect the equations
+    if df.shape[0] > 150:
+        df = df[df['prod']<percentile95]
+        df = df[df['prod']>percentile05]
+        ##
+        #reset index/make row order wise
+        df = df.reset_index(drop=True)
 
     ## make new column counting total no. of months
     totalmonth = []

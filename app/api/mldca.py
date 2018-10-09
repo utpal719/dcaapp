@@ -1,3 +1,4 @@
+import sys
 from flask import jsonify, json
 import pandas as pd
 import numpy as np
@@ -11,19 +12,40 @@ import peakutils
 from sklearn.cluster import KMeans
 
 def eq1(x,a,b):
+    #print("calling eqn 1")
+    try:
+        val = b*pow(np.array(x),-a)
+    except:
+        print("error in eq 1")
     return b*pow(np.array(x),-a)
 
 def eq2(x,a,b):
+    #print("calling eqn 2")
+    try:
+        val = a+b/(10*np.log(1+b*np.array(x)))
+    except:
+        print("error in eq 2")
     return a+b/(10*np.log(1+b*np.array(x)))
 
 def eq3(x,a,b):
+    #print("calling eqn 3")
+    try:
+        val = a/(1+ b*np.array(x))
+    except:
+        print("error in eq 3")
     return a/(1+ b*np.array(x))
 
 def eq4(x,a,b):
+    #print("calling eqn 4")
+    try:
+        val = (a+b*np.array(x)*(np.log(x)-1))/(np.array(x)*pow(np.log(x),2))
+    except:
+        print("error in eq 4")
     return (a+b*np.array(x)*(np.log(x)-1))/(np.array(x)*pow(np.log(x),2))
 
 def dodca(df):
-    #print(df)
+    print(len(df))
+    np.seterr(divide='print')
     time_start = time.now()
     cols = ['segment1','segment2','eq1','p1_a','p1_b','eq2','p2_a','p2_b','eq3','p3_a','p3_b',
         'predicted_production','actul_production','difference','months_left','est_prod']
@@ -32,18 +54,21 @@ def dodca(df):
     totalprod = 0
     
     for i in df['prod']:
-        totalprod += i
+        num = float(i)
+        totalprod += int(num)
 
     df = df.sort_values(['year','month'])
     percentile95 = df['prod'].quantile(0.95)
     percentile05 = df['prod'].quantile(0.05)
 
     ##  DELETING THE OUTLIERS 
-    df = df[df['prod']<percentile95]
-    df = df[df['prod']>percentile05]
-    ##
-    #reset index/make row order wise
-    df = df.reset_index(drop=True)
+    #Only in case of large datasets - deleting outliers for small datasets will affect the equations
+    if df.shape[0] > 150:
+        df = df[df['prod']<percentile95]
+        df = df[df['prod']>percentile05]
+        ##
+        #reset index/make row order wise
+        df = df.reset_index(drop=True)
 
     ## make new column counting total no. of months
     totalmonth = []
@@ -67,7 +92,7 @@ def dodca(df):
     ##    del df['prod']
     ##    df['prod'] = nprod
 
-
+    
     """This might not be necessary for all datasets"""
     ##  Calculating cumulative production
     cprod = [df['prod'][0]]
@@ -75,17 +100,19 @@ def dodca(df):
         cprod.append(cprod[-1]+df['prod'][i])
     df['cprod'] = cprod
     del cprod
+
     """This might not be necessary for all datasets"""
 
     """Three time period segments have been assumed. This should be decided based on the data"""
     ## Lets take default values of (time/period) segmentation point as:-
     onethird = int(df['tmonth'][len(df)-1]/3)
     twothird = int(2*df['tmonth'][len(df)-1]/3)
-    #print(df['tmonth'])
+
     #Selecting rows having peak values
     #Min_Dist ->minimum distance between 2 peaks
     #thres ->adjust sensitivity of selecting peaks
     index = peakutils.indexes(df['prod'],thres = 0.2, min_dist = 0.1)
+
     try:
         #[df['tmonth'][i],0] as it requires 2-D array
         # It will make clusters of months where we found peaks.
@@ -95,6 +122,7 @@ def dodca(df):
         centers = [kmc.cluster_centers_[0][0],kmc.cluster_centers_[1][0]]
         centers.sort()
         onethird,twothird = centers[0],centers[1]
+        #print("onethird: %s, twothird: %s"%(onethird,twothird))
     except :
         #If k-means not work it takes previous default values
         #print('kmeans not done in well'+str(i))
@@ -116,7 +144,6 @@ def dodca(df):
 
     # In gap of 10-10 values check for validation
     # Work only if their are existing +-40 values from onethird part else it will only check on onethird value.
-
     if onethird >5*interval and len(df)>onethird+10*interval:
         firstbreak = []
         #will store -40,-30,-20,-10,0,10,20,30,40 from onethird value in firstbreak array.
@@ -134,7 +161,7 @@ def dodca(df):
         secondbreak = [twothird]
 
     ################################################################################ 
-
+    #firstbread = [3], secondbreak = [10]
     #Array of equations
     equations = [eq1,eq2,eq3,eq4]
     suitable = []
@@ -162,12 +189,19 @@ def dodca(df):
                         #Go through all equations
                         for i in range(len(equations)):
                             try:
+                                #print("going to call eqn %s"%i)
                                 params.append(op.curve_fit(equations[i],df['tmonth'][x:y],
                                                        df['prod'][x:y],[.5,1])[0])
+                                """ params.append(op.curve_fit(equations[i],df['tmonth'][x:y],
+                                                       df['prod'][x:y],[.5,1])[0]) """
+                            except RuntimeError as rerr:
+                                print("runtime error: ",rerr)
+                                params.append(['error','error'])
                             except :
+                                print("exception occurs here", sys.exc_info()[0])
                                 params.append(['error','error'])
                                 #print('Well_'+str(well)+', equation_'+str(i+1)+' not suitable.')
-                        
+                        #print("length params: ",len(params))
                         for e in range(4):
                             err = 0
                             if params[e][0]!='error':
@@ -215,7 +249,6 @@ def dodca(df):
     brkpoint2 = break2[suit]
     params = par[suit]
     eqns = eqtn[suit]
-
     ##################################################################################
 
     ##  Calculation remaining time of oil production
@@ -224,8 +257,12 @@ def dodca(df):
     last = df['tmonth'][len(df)-1]
     months_left = 0
 
-    #Take 5% value of last segment starting part
-    five_percent_of_max = equations[eqns[2]](df['tmonth'][brkpoint2],params[2][0],params[2][1])/20
+    try:
+        #Take 5% value of last segment starting part
+        five_percent_of_max = equations[eqns[2]](df['tmonth'][brkpoint2],params[2][0],params[2][1])/20
+    except:
+        print("Error here!!!!!!!!!!!!!!!")
+        print("Month: ",df['tmonth'][brkpoint2], " params[2][0]: ",params[2][0], " params[2][1]: ",params[2][1])
 
     #Calculating the total months till production exceeds
     while equations[eqns[2]](last+months_left,params[2][0],

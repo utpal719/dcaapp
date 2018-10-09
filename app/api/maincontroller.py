@@ -2,7 +2,7 @@ from flask import jsonify, request, g, json
 from app import db
 from app.api import bp
 from app.api.auth import token_auth
-from app.api.errors import error_response
+from app.api.errors import *
 import pandas as pd
 import io
 import datetime
@@ -28,7 +28,7 @@ def upload_csv():
     file_ext = data.filename.rsplit('.', 1)[1].lower()
 
     if(file_ext == 'csv'):
-        print("has delimiter: %s"%delimiter_provided)
+        #print("has delimiter: %s"%delimiter_provided)
         df = pd.read_csv(io.BytesIO(data.read()), skiprows=[0], skipinitialspace=True, header=None)
     elif(file_ext == 'prd'):    
         df = pd.read_csv(io.BytesIO(data.read()), skiprows=[0], skipinitialspace=True, delim_whitespace=True, header=None, names=["well", "readdate", "oilrate", "waterrate", "gasrate"]) #, names=["Well", "Read_Date", "Oilrate", "Waterrate", "Gasrate"], index_col=False
@@ -80,13 +80,18 @@ def process_dca():
         return error_response(400, "One or more required parameters are missing")
 
     try:
+        
+        s = "select * from casedata where user='{}' and well='{}'".format(g.current_user.username, well_name)
         #df = pd.read_sql("select * from prodmetrics where user='{}' and AUTOMATION_NAME='{}'".format(g.current_user.username, well_name), con=db.engine, index_col='id')
-        df = pd.read_sql("select * from casedata where user='{}' and well='{}'".format(g.current_user.username, well_name), con=db.engine)
+        df = pd.read_sql(s, con=db.engine)
+        if df.empty:
+            return not_found("Requested well information not found")
     except:
         return error_response(400, "reading from table failed")
+
+    
     #Rename columns ---> TODO: This should be user parametrized
     df.rename(columns={'well':'well','readdate':'date','oilrate':'prod'},inplace = True)
-
     """
     The month and year fields are captured depending on the date format supplied by user
     """
@@ -111,6 +116,7 @@ def process_dca():
         df.to_sql("dataset", con=db.engine, if_exists='append', index=False)
     except:
         return error_response(400, "Unknown columns") """
+    #print(df) 
     resp = dodca(df)
     """ resp = {
         'message': 'created'

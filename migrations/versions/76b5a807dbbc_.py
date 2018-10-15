@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 5b413adbc070
+Revision ID: 76b5a807dbbc
 Revises: 
-Create Date: 2018-10-03 16:30:25.917578
+Create Date: 2018-10-12 15:56:26.531883
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '5b413adbc070'
+revision = '76b5a807dbbc'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -50,6 +50,16 @@ def upgrade():
     op.create_index(op.f('ix_dataset_datasetname'), 'dataset', ['datasetname'], unique=False)
     op.create_index(op.f('ix_dataset_user'), 'dataset', ['user'], unique=False)
     op.create_index(op.f('ix_dataset_well'), 'dataset', ['well'], unique=False)
+    op.create_table('proddata',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('wellid', sa.String(length=64), nullable=False),
+    sa.Column('atttype', sa.String(length=64), nullable=False),
+    sa.Column('attvalue', sa.Float(), nullable=True),
+    sa.Column('readdate', sa.DateTime(), nullable=False),
+    sa.Column('datasetid', sa.Integer(), nullable=False),
+    sa.PrimaryKeyConstraint('id')
+    )
+    op.create_index(op.f('ix_proddata_wellid'), 'proddata', ['wellid'], unique=False)
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('username', sa.String(length=64), nullable=True),
@@ -71,6 +81,8 @@ def downgrade():
     op.drop_index(op.f('ix_user_token'), table_name='user')
     op.drop_index(op.f('ix_user_email'), table_name='user')
     op.drop_table('user')
+    op.drop_index(op.f('ix_proddata_wellid'), table_name='proddata')
+    op.drop_table('proddata')
     op.drop_index(op.f('ix_dataset_well'), table_name='dataset')
     op.drop_index(op.f('ix_dataset_user'), table_name='dataset')
     op.drop_index(op.f('ix_dataset_datasetname'), table_name='dataset')

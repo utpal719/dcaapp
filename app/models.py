@@ -25,6 +25,17 @@ class Dataset(db.Model):
     def __repr__(self):
         return '<Dataset {} {} {}>'.format(self.well, self.prod, self.date) 
 
+class Proddata(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    wellid = db.Column(db.String(64), index=True, nullable=False)
+    atttype = db.Column(db.String(64), nullable=False)
+    attvalue = db.Column(db.Float)
+    readdate = db.Column(db.DateTime, nullable=False)
+    datasetid = db.Column(db.Integer, nullable=False)
+
+    def __repr__(self):
+        return '<Proddata {} {} {} {} {}>'.format(self.wellid, self.atttype, self.attvalue, self.readdate, self.datasetid) 
+
 class Casedata(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     well = db.Column(db.String(64), index=True)

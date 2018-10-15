@@ -20,12 +20,6 @@ def upload_csv():
 
     data_opts = request.args.to_dict()
 
-    """ has_delimiter = False
-    try:
-        delimiter_provided = data_opts['delimiter']
-        has_delimiter = True
-    except:
-        has_delimiter = False """
     file_ext = data.filename.rsplit('.', 1)[1].lower()
 
     if(file_ext == 'csv'):

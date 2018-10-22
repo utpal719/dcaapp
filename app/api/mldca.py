@@ -10,6 +10,20 @@ import scipy.optimize as op
 ##Finding Peaks
 import peakutils
 from sklearn.cluster import KMeans
+import operator
+import logging
+
+logging.basicConfig(level=logging.DEBUG)
+
+def no_of_clusters(X,n=15):
+    scores = []
+    for i in range(2,n+1):
+        kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
+        label = kmeans.labels_
+        sil_coeff = silhouette_score(X, label, metric='euclidean')
+        scores.append(sil_coeff)
+    index, value = max(enumerate(scores), key=operator.itemgetter(1))
+    return (index+2,value)
 
 def eq1(x,a,b):
     #print("calling eqn 1")
@@ -128,10 +142,14 @@ def dodca(df):
         try:
             #[df['tmonth'][i],0] as it requires 2-D array
             # It will make clusters of months where we found peaks.
-            kmc = KMeans(n_clusters = 2, random_state = 10).fit([[df['tmonth'][i],0] for i in index]) 
+            n, val = no_of_clusters([[df['tmonth'][i],0] for i in index])
+            kmc = KMeans(n_clusters = n, random_state = 10).fit([[df['tmonth'][i],0] for i in index]) 
 
             #select center of clusters   
-            centers = [kmc.cluster_centers_[0][0],kmc.cluster_centers_[1][0]]
+            centers = []
+            for i in kmc.cluster_centers_:
+                for j in i:
+                    centers.append(j)
             centers.sort()
             onethird,twothird = centers[0],centers[1]
             #print("onethird: %s, twothird: %s"%(onethird,twothird))
@@ -141,14 +159,27 @@ def dodca(df):
             pass
 
         ## converting value of month to its index in data to use in furthur calculations
-        for i in range(len(df)):
-            if df['tmonth'][i] > onethird:
-                onethird = i
-                break
-        for j in range(i,len(df)):
-            if df['tmonth'][j] > twothird:
-                twothird = j
-                break
+
+
+        for k in range(len(centers))
+            for i in range(len(df)):
+                if df['tmonth'][i] > centers[k]:
+                    centers[k] = i
+                    break
+            for j in range(i,len(df)):
+                if df['tmonth'][j] > centers[k]:
+                    centers[k] = j
+                    break
+
+
+        # for i in range(len(df)):
+        #     if df['tmonth'][i] > onethird:
+        #         onethird = i
+        #         break
+        # for j in range(i,len(df)):
+        #     if df['tmonth'][j] > twothird:
+        #         twothird = j
+        #         break
 
         ####################################################################################3    
         interval = 10

@@ -12,14 +12,18 @@ import peakutils
 from sklearn.cluster import KMeans
 import operator
 import logging
+from sklearn.metrics import silhouette_score
 
 logging.basicConfig(level=logging.DEBUG)
 
-def no_of_clusters(X,n=15):
+def no_of_clusters(X):
     scores = []
-    for i in range(2,n+1):
+    for i in range(2,16):
         kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
         label = kmeans.labels_
+        print(len(label))
+        print('--------')
+        print(len(X))
         sil_coeff = silhouette_score(X, label, metric='euclidean')
         scores.append(sil_coeff)
     index, value = max(enumerate(scores), key=operator.itemgetter(1))
@@ -121,6 +125,7 @@ def dodca(df):
     ## Lets take default values of (time/period) segmentation point as:-
     onethird = int(df['tmonth'][len(df)-1]/3)
     twothird = int(2*df['tmonth'][len(df)-1]/3)
+    centers = []
 
     #Start loop here:
     focus_cols = ["prod", "waterrate", "gasrate"]
@@ -132,24 +137,20 @@ def dodca(df):
     }
 
     for col_name in focus_cols:
-        print(df[col_name][0])
-
         #Selecting rows having peak values
         #Min_Dist ->minimum distance between 2 peaks
-        #thres ->adjust sensitivity of selecting peaks
+        #thres ->adjust sensitivity of selecting peaks 
         index = peakutils.indexes(df[col_name],thres = 0.2, min_dist = 0.1)
-
         try:
             #[df['tmonth'][i],0] as it requires 2-D array
             # It will make clusters of months where we found peaks.
-            n, val = no_of_clusters([[df['tmonth'][i],0] for i in index])
+            n = 2
             kmc = KMeans(n_clusters = n, random_state = 10).fit([[df['tmonth'][i],0] for i in index]) 
-
             #select center of clusters   
-            centers = []
-            for i in kmc.cluster_centers_:
-                for j in i:
-                    centers.append(j)
+            for i in range(n):
+                centers.append(kmc.cluster_centers_[i][0])
+
+            # centers = [kmc.cluster_centers_[0][0],kmc.cluster_centers_[1][0]]
             centers.sort()
             onethird,twothird = centers[0],centers[1]
             #print("onethird: %s, twothird: %s"%(onethird,twothird))
@@ -158,50 +159,65 @@ def dodca(df):
             #print('kmeans not done in well'+str(i))
             pass
 
+        # print(centers)
+        print(onethird)
+        print(twothird)
         ## converting value of month to its index in data to use in furthur calculations
 
+        # for k in range(len(centers)):
+        #     for i in range(len(df)):
+        #         if df['tmonth'][i] > centers[k]:
+        #             centers[k] = i
+        #             break
+        #     for j in range(i,len(df)):
+        #         if df['tmonth'][j] > centers[k]:
+        #             centers[k] = j
+        #             break
 
-        for k in range(len(centers))
-            for i in range(len(df)):
-                if df['tmonth'][i] > centers[k]:
-                    centers[k] = i
-                    break
-            for j in range(i,len(df)):
-                if df['tmonth'][j] > centers[k]:
-                    centers[k] = j
-                    break
+        for i in range(len(df)):
+            if df['tmonth'][i] > onethird:
+                onethird = i
+                break
+        for j in range(i,len(df)):
+            if df['tmonth'][j] > twothird:
+                twothird = j
+                break
 
-
-        # for i in range(len(df)):
-        #     if df['tmonth'][i] > onethird:
-        #         onethird = i
-        #         break
-        # for j in range(i,len(df)):
-        #     if df['tmonth'][j] > twothird:
-        #         twothird = j
-        #         break
+        # print(onethird)
+        # print(twothird)
 
         ####################################################################################3    
         interval = 10
-
+        breakes = []
 
         # In gap of 10-10 values check for validation
         # Work only if their are existing +-40 values from onethird part else it will only check on onethird value.
-        if onethird >5*interval and len(df)>onethird+10*interval:
-            firstbreak = []
-            #will store -40,-30,-20,-10,0,10,20,30,40 from onethird value in firstbreak array.
-            for i in range(onethird-4*interval,onethird+5*interval,interval):
-                firstbreak.append(i)
-        else :
-            firstbreak = [onethird]
+        for center in centers:
+            if center > 5 * interval and len(df) > center + 10 * interval:
+                firstbreak = []
+                for i in range(center-4*interval, center+8*interval,interval):
+                    firstbreak.append(i)
+            else:
+                firstbreak = [center]
+            breakes.append(firstbreak)
 
-        if twothird >5*interval+onethird and len(df)>twothird+5*interval:
-            secondbreak = []
-            #will store -40,-30,-20,-10,0,10,20,30,40 from twothird value in secondbreak array.
-            for i in range(twothird-5*interval,twothird+5*interval,interval):
-                secondbreak.append(i)
-        else :
-            secondbreak = [twothird]
+
+
+        # if onethird >5*interval and len(df)>onethird+10*interval:
+        #     firstbreak = []
+        #     #will store -40,-30,-20,-10,0,10,20,30,40 from onethird value in firstbreak array.
+        #     for i in range(onethird-4*interval,onethird+5*interval,interval):
+        #         firstbreak.append(i)
+        # else :
+        #     firstbreak = [onethird]
+
+        # if twothird >5*interval+onethird and len(df)>twothird+5*interval:
+        #     secondbreak = []
+        #     #will store -40,-30,-20,-10,0,10,20,30,40 from twothird value in secondbreak array.
+        #     for i in range(twothird-5*interval,twothird+5*interval,interval):
+        #         secondbreak.append(i)
+        # else :
+        #     secondbreak = [twothird]
 
         ################################################################################ 
         #firstbread = [3], secondbreak = [10]
@@ -276,6 +292,7 @@ def dodca(df):
                 par.append(parameters)
                 eqtn.append(eqtns)
                 total_error.append(errs)
+
 
         #Till now we have made arrays which store different combinations of equations,their total errors and parameters.
         #Now select the index with minimun total error and correspondingly select all the parameters from other arrays at same index point.
@@ -369,6 +386,8 @@ def dodca(df):
             }
         except:
             print("Error mapping scatter")
+        
+        centers = []
         #plt.savefig('graph_well_'+str(0)+'.png')
         #plt.close('all')
         

@@ -12,22 +12,11 @@ import peakutils
 from sklearn.cluster import KMeans
 import operator
 import logging
+import itertools
 from sklearn.metrics import silhouette_score
+import copy
 
 logging.basicConfig(level=logging.DEBUG)
-
-def no_of_clusters(X):
-    scores = []
-    for i in range(2,16):
-        kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
-        label = kmeans.labels_
-        print(len(label))
-        print('--------')
-        print(len(X))
-        sil_coeff = silhouette_score(X, label, metric='euclidean')
-        scores.append(sil_coeff)
-    index, value = max(enumerate(scores), key=operator.itemgetter(1))
-    return (index+2,value)
 
 def eq1(x,a,b):
     #print("calling eqn 1")
@@ -60,6 +49,17 @@ def eq4(x,a,b):
     except:
         print("error in eq 4")
     return (a+b*np.array(x)*(np.log(x)-1))/(np.array(x)*pow(np.log(x),2))
+
+def no_of_clusters(X,n=15):
+    scores = []
+    for i in range(2,n+1):
+        kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
+        label = kmeans.labels_
+        sil_coeff = silhouette_score(X, label, metric='euclidean')
+        scores.append(sil_coeff)
+    index, value = max(enumerate(scores), key=operator.itemgetter(1))
+    return (index+2,value)
+
 
 def dodca(df):
     print(df.head())
@@ -137,6 +137,9 @@ def dodca(df):
     }
 
     for col_name in focus_cols:
+        print('--------------------')
+        print(col_name)
+        print('+-------------------')
         #Selecting rows having peak values
         #Min_Dist ->minimum distance between 2 peaks
         #thres ->adjust sensitivity of selecting peaks 
@@ -144,10 +147,11 @@ def dodca(df):
         try:
             #[df['tmonth'][i],0] as it requires 2-D array
             # It will make clusters of months where we found peaks.
-            n = 2
-            kmc = KMeans(n_clusters = n, random_state = 10).fit([[df['tmonth'][i],0] for i in index]) 
+            XX = [[df['tmonth'][i],0] for i in index]
+            nc, val = no_of_clusters(XX)
+            kmc = KMeans(n_clusters = nc, random_state = 10).fit(XX) 
             #select center of clusters   
-            for i in range(n):
+            for i in range(nc):
                 centers.append(kmc.cluster_centers_[i][0])
 
             # centers = [kmc.cluster_centers_[0][0],kmc.cluster_centers_[1][0]]
@@ -160,28 +164,24 @@ def dodca(df):
             pass
 
         # print(centers)
-        print(onethird)
-        print(twothird)
+        # print(onethird)
+        # print(twothird)
         ## converting value of month to its index in data to use in furthur calculations
 
-        # for k in range(len(centers)):
-        #     for i in range(len(df)):
-        #         if df['tmonth'][i] > centers[k]:
-        #             centers[k] = i
-        #             break
-        #     for j in range(i,len(df)):
-        #         if df['tmonth'][j] > centers[k]:
-        #             centers[k] = j
-        #             break
+        for k in range(len(centers)):
+            for i in range(len(df)):
+                if df['tmonth'][i] > centers[k]:
+                    centers[k] = i
+                    break
 
-        for i in range(len(df)):
-            if df['tmonth'][i] > onethird:
-                onethird = i
-                break
-        for j in range(i,len(df)):
-            if df['tmonth'][j] > twothird:
-                twothird = j
-                break
+        # for i in range(len(df)):
+        #     if df['tmonth'][i] > onethird:
+        #         onethird = i
+        #         break
+        # for j in range(i,len(df)):
+        #     if df['tmonth'][j] > twothird:
+        #         twothird = j
+        #         break
 
         # print(onethird)
         # print(twothird)
@@ -189,17 +189,19 @@ def dodca(df):
         ####################################################################################3    
         interval = 10
         breakes = []
+        stamp = 0
 
         # In gap of 10-10 values check for validation
         # Work only if their are existing +-40 values from onethird part else it will only check on onethird value.
         for center in centers:
-            if center > 5 * interval and len(df) > center + 10 * interval:
+            if center > 5 * interval+stamp and len(df) > center + 5 * interval:
                 firstbreak = []
-                for i in range(center-4*interval, center+8*interval,interval):
+                for i in range(center-5*interval, center+5*interval,interval):
                     firstbreak.append(i)
             else:
                 firstbreak = [center]
             breakes.append(firstbreak)
+            stamp = center
 
 
 
@@ -232,67 +234,75 @@ def dodca(df):
         break2 = []
         par = []
         eqtn = []
+        break_points = []
         
         #These check values for all different combinations of onethird and two third values
-        for onethird in firstbreak:
-            for twothird in secondbreak:
-                errs = 0
-                eqtns = []
-                parameters = []
-                #Now we will first take each segment and check all 4 equations.
-                for x,y in zip([0,onethird,twothird],
-                            [onethird,twothird,len(df)]):
-                            params = []
-                            #Add errors for all $ eqtns in this array.
-                            errors = [float('inf'),float('inf'),float('inf'),float('inf')]
-                            #Go through all equations
-                            for i in range(len(equations)):
-                                try:
-                                    #print("going to call eqn %s"%i)
-                                    params.append(op.curve_fit(equations[i],df['tmonth'][x:y],
-                                                        df[col_name][x:y],[.5,1])[0])
 
-                                except RuntimeError as rerr:
-                                    print("runtime error: ",rerr)
-                                    params.append(['error','error'])
-                                except :
-                                    print("exception occurs here", sys.exc_info()[0])
-                                    params.append(['error','error'])
-                                    #print('Well_'+str(well)+', equation_'+str(i+1)+' not suitable.')
-                            #print("length params: ",len(params))
-                            for e in range(4):
-                                err = 0
-                                if params[e][0]!='error':
-                                    for i in range(x,y):
-                                        err+=abs(df[col_name][i]-equations[e](df['tmonth'][i],params[e][0],params[e][1]))
+        # for rows in range(len(center)):
+        # print('----------------')
+        # print(breakes)
 
-                                    errors[e] = err
+        combinations = []
 
-                                    
-                            #Till now what we have is params and errors array in which their are values for all 4 equations  corresponding to a single segment.
-                                    # params->[(a,b),(a,b),(a,b),(a,b)]   # errors-> [errorEQN1 , errorEQN2 ,errorEQN3, errorEQN4]
-                            mini = 0
-
-                            #Then select values corresponding to minimum error.
-                            for i in range(1,4):
-                                if errors[i]<errors[mini] :
-                                    mini = i
-
-                            #And save values corresponding to that index
-                            #Now it will do for next segment and get total error of one combination of graph        
-                            errs+=errors[mini]
-                            eqtns.append(mini)
-                            parameters.append(params[mini])
+        for com in itertools.product(*breakes):
+            combinations.append(com)
 
 
-                        
-                #At this points we are saving a best fit sets of equation for that particular onethird and twothird along with their errors and parameters.            
-                break1.append(onethird)
-                break2.append(twothird)
-                par.append(parameters)
-                eqtn.append(eqtns)
-                total_error.append(errs)
+        
+        for combination in combinations:
+            errs = 0
+            eqtns = []
+            parameters = []
+            
+            com = [b for b in combination]
+            com1 = copy.deepcopy(com)
+            com2 = copy.deepcopy(com)
+            com1.insert(0,0)
+            com2.append(len(df))
 
+            for x,y in zip(com1,com2):
+                params = []
+                errors = [float('inf'),float('inf'),float('inf'),float('inf')]
+                for i in range(len(equations)):
+                    try:
+                        params.append(op.curve_fit(equations[i],df['tmonth'][x:y],
+                                                            df['prod'][x:y],[.5,1])[0])
+                    except :
+                        params.append(['error','error'])
+                            
+                for e in range(4):
+                    err = 0
+                    if params[e][0]!='error':
+                        for i in range(x,y):
+                            err+=abs(df['prod'][i]-equations[e](df['tmonth'][i],params[e][0],params[e][1]))
+
+                        errors[e] = err
+                mini = 0
+                for i in range(1,4):
+                    if errors[i]<errors[mini] :
+                        mini = i   
+                errs+=errors[mini]
+                eqtns.append(mini)
+                parameters.append(params[mini]) 
+
+            par.append(parameters)
+            eqtn.append(eqtns)
+            total_error.append(errs)
+
+            inside = []
+            for index, value in enumerate(combination):
+                inside.append(value)
+                
+            break_points.append(inside)
+        num_each_tuple = len(break_points[0])
+        compl = []
+        for inx in range(num_each_tuple):
+            vals = []
+            for index_bkpt in range(len(break_points)):
+                vals.append(break_points[index_bkpt][inx])
+            compl.append(vals)
+
+        break_points = copy.deepcopy(compl)
 
         #Till now we have made arrays which store different combinations of equations,their total errors and parameters.
         #Now select the index with minimun total error and correspondingly select all the parameters from other arrays at same index point.
@@ -304,8 +314,11 @@ def dodca(df):
                 suit = i
                 error = total_error[i]
 
-        brkpoint1 = break1[suit]
-        brkpoint2 = break2[suit]
+        bkpoints = []
+
+        for idx in range(num_each_tuple):
+            bkpoints.append(break_points[idx][suit])
+
         params = par[suit]
         eqns = eqtn[suit]
         ##################################################################################
@@ -318,10 +331,10 @@ def dodca(df):
 
         try:
             #Take 5% value of last segment starting part
-            five_percent_of_max = equations[eqns[2]](df['tmonth'][brkpoint2],params[2][0],params[2][1])/20
+            five_percent_of_max = equations[eqns[2]](df['tmonth'][bkpoints[-1]],params[2][0],params[2][1])/20
         except:
             print("Error here!!!!!!!!!!!!!!!")
-            print("Month: ",df['tmonth'][brkpoint2], " params[2][0]: ",params[2][0], " params[2][1]: ",params[2][1])
+            #print("Month: ",df['tmonth'][bkpoints[-1]], " params[2][0]: ",params[2][0], " params[2][1]: ",params[2][1])
 
         #Calculating the total months till production exceeds
         while equations[eqns[2]](last+months_left,params[2][0],
@@ -347,7 +360,7 @@ def dodca(df):
         #plt.figure()
 
         #x->start point  y->end point  i->which equation to use  j->It indicates which segment part.
-        for x,y,i,j in zip([0,brkpoint1,brkpoint2],[brkpoint1,brkpoint2,len(df)],eqns,range(3)):
+        for x,y,i,j in zip([0,*bkpoints],[*bkpoints,len(df)],eqns,range(3)):
             #Plot curves
             #plt.plot(df['tmonth'][x:y],equations[i](df['tmonth'][x:y],params[j][0],params[j][1]),c=graphcolor[i+1])
             master[col_name]['decline'].append(df['tmonth'][x:y].values.tolist()) #.to_json(orient='values')
@@ -372,10 +385,10 @@ def dodca(df):
         estimated_production = sum(equations[i](predict,params[j][0],params[j][1]))
 
         #Fill the empty data frame that we have made in starting
-        info.loc[0] = list(pd.Series([brkpoint1,brkpoint2,eqns[0],params[0][0],params[0][1],eqns[1],
-                                        params[1][0],params[1][1],eqns[2],params[2][0],params[2][1],
-                                        predicted_production,actual_production,predicted_production-actual_production,
-                                        months_left,estimated_production]))
+        # info.loc[0] = list(pd.Series([brkpoint1,brkpoint2,eqns[0],params[0][0],params[0][1],eqns[1],
+        #                                 params[1][0],params[1][1],eqns[2],params[2][0],params[2][1],
+        #                                 predicted_production,actual_production,predicted_production-actual_production,
+        #                                 months_left,estimated_production]))
 
         #plot the original points and save figure
         #plt.scatter(df['tmonth'],df['prod'],s=3)

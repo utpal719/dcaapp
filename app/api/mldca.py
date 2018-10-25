@@ -129,6 +129,7 @@ def dodca(df):
 
     #Start loop here:
     focus_cols = ["prod", "waterrate", "gasrate"]
+    #focus_cols = ["prod"]
 
     master = {
         "prod": {},
@@ -136,6 +137,8 @@ def dodca(df):
         "gasrate": {}
     }
 
+
+    #index = peakutils.indexes(df['prod'],thres = 0.2, min_dist = 0.1)
     for col_name in focus_cols:
         print('--------------------')
         print(col_name)
@@ -266,7 +269,7 @@ def dodca(df):
                 for i in range(len(equations)):
                     try:
                         params.append(op.curve_fit(equations[i],df['tmonth'][x:y],
-                                                            df['prod'][x:y],[.5,1])[0])
+                                                            df[col_name][x:y],[.5,1])[0])
                     except :
                         params.append(['error','error'])
                             
@@ -274,7 +277,7 @@ def dodca(df):
                     err = 0
                     if params[e][0]!='error':
                         for i in range(x,y):
-                            err+=abs(df['prod'][i]-equations[e](df['tmonth'][i],params[e][0],params[e][1]))
+                            err+=abs(df[col_name][i]-equations[e](df['tmonth'][i],params[e][0],params[e][1]))
 
                         errors[e] = err
                 mini = 0
@@ -304,6 +307,8 @@ def dodca(df):
 
         break_points = copy.deepcopy(compl)
 
+        
+
         #Till now we have made arrays which store different combinations of equations,their total errors and parameters.
         #Now select the index with minimun total error and correspondingly select all the parameters from other arrays at same index point.
         #This will help us to get best segmentation point along with equations used for each segment.
@@ -321,6 +326,14 @@ def dodca(df):
 
         params = par[suit]
         eqns = eqtn[suit]
+
+        print('------###-----')
+        print("par",par)
+        print('-----------')
+        print("eqtn",eqtn)
+        print('-----------')
+        print("suit",suit)
+        print('------###-----')
         ##################################################################################
 
         ##  Calculation remaining time of oil production
@@ -336,7 +349,17 @@ def dodca(df):
             print("Error here!!!!!!!!!!!!!!!")
             #print("Month: ",df['tmonth'][bkpoints[-1]], " params[2][0]: ",params[2][0], " params[2][1]: ",params[2][1])
 
+
         #Calculating the total months till production exceeds
+        print('------------')
+        print("eqns",eqns)
+        print('------------')
+        print("params",params)
+        print('------------')
+        print("equations",equations)
+        print('------------')
+        print("last",last)
+        print('------------')
         while equations[eqns[2]](last+months_left,params[2][0],
                         params[2][1])>equations[eqns[2]](last+months_left+1,
                                                     params[2][0],params[2][1]) > five_percent_of_max and months_left<=100:
@@ -416,5 +439,4 @@ def dodca(df):
         #print('Duration: {}'.format(time.now()-time_start))
 
     #End loop here:
-
     return master

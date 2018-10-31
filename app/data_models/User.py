@@ -8,6 +8,8 @@ from flask import current_app
 from datetime import datetime, timedelta
 from app.data_models.AuditMixin import AuditMixin
 
+TOKEN_EXPIRATION_TIME = current_app.config.get('TOKEN_EXPIRATION_TIME')
+
 class User(UserMixin, AuditMixin, db.Model):
     __tablename__ = "Users"
     id = db.Column(db.Integer, primary_key=True)
@@ -57,7 +59,7 @@ class User(UserMixin, AuditMixin, db.Model):
         if new_user and 'password' in data:
             self.set_password(data['password'])
 
-    def get_token(self, expires_in=3600):
+    def get_token(self, expires_in=TOKEN_EXPIRATION_TIME):
         now = datetime.utcnow()
         if self.token and self.token_expiration > now + timedelta(seconds=60):
             return self.token

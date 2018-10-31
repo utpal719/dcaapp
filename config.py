@@ -10,3 +10,4 @@ class Config(object):
         'sqlite:///' + os.path.join(basedir, 'app.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.path.join(basedir, os.environ.get('UPLOAD_FOLDER'))
+    TOKEN_EXPIRATION_TIME = os.environ.get('TOKEN_EXPIRATION_TIME', 3600)

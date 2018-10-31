@@ -1,6 +1,7 @@
 from app import db
+from app.data_models.AuditMixin import AuditMixin
 
-class Well(db.Model):
+class Well(AuditMixin, db.Model):
     __tablename__ = "Wells"
     Id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(45), nullable=False)

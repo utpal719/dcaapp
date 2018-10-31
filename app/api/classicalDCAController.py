@@ -2,7 +2,7 @@ from flask import jsonify, request, g, json
 from app import db
 from app.response_models import dcaVMs
 from app.api import bp
-from app.api import dca
+from app.logic import dca
 from app.api.auth import token_auth
 from app.api.errors import error_response
 import io

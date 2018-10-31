@@ -1,6 +1,6 @@
 from app import db
-
-class IDCAnalysis(db.Model):
+from app.data_models.AuditMixin import AuditMixin
+class IDCAnalysis(AuditMixin, db.Model):
     __tablename__ = "IDCAnalysis"
     Id = db.Column(db.Integer, primary_key=True)
     WellId = db.Column(db.Integer, db.ForeignKey("Wells.Id"), nullable=False)

@@ -1,6 +1,7 @@
 from app import db
+from app.data_models.AuditMixin import AuditMixin
 
-class UploadSet(db.Model):
+class UploadSet(AuditMixin, db.Model):
     __tablename__ = "UploadSets"
     Id = db.Column(db.Integer, primary_key=True)
     Name = db.Column(db.String(45), nullable=False)

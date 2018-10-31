@@ -6,7 +6,7 @@ from app.api.errors import *
 import pandas as pd
 import io
 import datetime
-from app.api.mldca import dodca
+from app.logic.mldca import dodca
 from sqlalchemy import text
 
 @bp.route('/upload', methods=['POST'])

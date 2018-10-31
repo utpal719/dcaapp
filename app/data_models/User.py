@@ -6,9 +6,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 from flask import current_app
 from datetime import datetime, timedelta
+from app.data_models.AuditMixin import AuditMixin
 
-
-class User(UserMixin, db.Model):
+class User(UserMixin, AuditMixin, db.Model):
     __tablename__ = "Users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)

@@ -1,6 +1,7 @@
 from app import db
+from app.data_models.AuditMixin import AuditMixin
 
-class IDCAResult(db.Model):
+class IDCAResult(AuditMixin, db.Model):
     __tablename__ = "IDCAResults"
     Id = db.Column(db.Integer, primary_key=True)
     IDCAnalysisId = db.Column(db.Integer, db.ForeignKey("IDCAnalysis.Id"), nullable=False)

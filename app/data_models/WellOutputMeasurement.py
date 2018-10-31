@@ -1,6 +1,7 @@
 from app import db
+from app.data_models.AuditMixin import AuditMixin
 
-class WellOutputMeasurement(db.Model):
+class WellOutputMeasurement(AuditMixin, db.Model):
     __tablename__ = "WellOutputMeasurements"
     Id = db.Column(db.Integer, primary_key=True)
     Date = db.Column(db.DateTime, nullable=False)

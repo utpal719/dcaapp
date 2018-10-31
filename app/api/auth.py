@@ -12,7 +12,7 @@ def authRouteHandler():
 from flask import g
 from flask_httpauth import HTTPBasicAuth, HTTPTokenAuth
 from flask_login import current_user
-from app.data_models import User
+from app.data_models.User import User
 from app.api.errors import error_response
 from flask import jsonify, request
 from app.api import bp
@@ -31,8 +31,8 @@ def authRouteHandler():
             user.get_token()
             g.current_user = user
             return jsonify({'username': user.username, 'token': user.token})
-    except:
-        return "user not found"
+    except Exception as ex:
+        return error_response(403, str(ex))
     return "not ok"
 
 basic_auth = HTTPBasicAuth()

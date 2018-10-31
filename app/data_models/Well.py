@@ -10,7 +10,15 @@ class Well(db.Model):
     UploadSetId = db.Column(db.Integer, db.ForeignKey("UploadSets.Id"), nullable=True)
     PerforationTopDepth = db.Column(db.Float)
     PerforationBottomDepth = db.Column(db.Float)
+    WellIOMeasurements = db.relationship('WellOutputMeasurement', lazy='select', 
+        cascade = 'all, delete-orphan',
+        backref=db.backref('Well', lazy='select'))
+    MeasurementFormats = db.relationship('MeasurementFormat', lazy='select', 
+        cascade = 'all, delete-orphan',
+        backref=db.backref('Well', lazy='select'))
 
     
     def __repr__(self):
         return '<Well {} {} {} {}>'.format(self.Id, self.Name, self.UserId, self.UploadSetId) 
+
+

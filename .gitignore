@@ -4,3 +4,5 @@ flask/
 venv/
 **.db
 .vs/
+uploads/*
+!uploads/.gitkeep

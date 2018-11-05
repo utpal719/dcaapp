@@ -51,13 +51,17 @@ def eq4(x,a,b):
     return (a+b*np.array(x)*(np.log(x)-1))/(np.array(x)*pow(np.log(x),2))
 
 def no_of_clusters(X,n=15):
+    try:
+        for i in range(2,n+1):
+            kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
+            label = kmeans.labels_
+            sil_coeff = silhouette_score(X, label, metric='euclidean')
+            scores.append(sil_coeff)
+        index, value = max(enumerate(scores), key=operator.itemgetter(1))
+    except:
+        index, value = 0, 1.0
     scores = []
-    for i in range(2,n+1):
-        kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
-        label = kmeans.labels_
-        sil_coeff = silhouette_score(X, label, metric='euclidean')
-        scores.append(sil_coeff)
-    index, value = max(enumerate(scores), key=operator.itemgetter(1))
+    
     return (index+2,value)
 
 
@@ -152,6 +156,7 @@ def dodca(df):
             # It will make clusters of months where we found peaks.
             XX = [[df['tmonth'][i],0] for i in index]
             nc, val = no_of_clusters(XX)
+            print('nc',nc, val)
             kmc = KMeans(n_clusters = nc, random_state = 10).fit(XX) 
             #select center of clusters   
             for i in range(nc):
@@ -171,11 +176,15 @@ def dodca(df):
         # print(twothird)
         ## converting value of month to its index in data to use in furthur calculations
 
+        print('im centers', centers)
+
         for k in range(len(centers)):
             for i in range(len(df)):
                 if df['tmonth'][i] > centers[k]:
                     centers[k] = i
                     break
+        
+        print('im centers', centers)
 
         # for i in range(len(df)):
         #     if df['tmonth'][i] > onethird:
@@ -206,6 +215,8 @@ def dodca(df):
             breakes.append(firstbreak)
             stamp = center
 
+        # print('im break', breakes)
+        # print('im centers', centers)
 
 
         # if onethird >5*interval and len(df)>onethird+10*interval:
@@ -250,6 +261,8 @@ def dodca(df):
         for com in itertools.product(*breakes):
             combinations.append(com)
 
+        # print('printing breakes ', breakes)
+        # print('printing combinations', combinations)
 
         
         for combination in combinations:
@@ -262,6 +275,8 @@ def dodca(df):
             com2 = copy.deepcopy(com)
             com1.insert(0,0)
             com2.append(len(df))
+
+            # print('-----------\n', col_name)
 
             for x,y in zip(com1,com2):
                 params = []
@@ -287,6 +302,7 @@ def dodca(df):
                 errs+=errors[mini]
                 eqtns.append(mini)
                 parameters.append(params[mini]) 
+                # print('testing - ',params[mini])
 
             par.append(parameters)
             eqtn.append(eqtns)
@@ -327,13 +343,13 @@ def dodca(df):
         params = par[suit]
         eqns = eqtn[suit]
 
-        print('------###-----')
-        print("par",par)
-        print('-----------')
-        print("eqtn",eqtn)
-        print('-----------')
-        print("suit",suit)
-        print('------###-----')
+        # print('------###-----')
+        # print("par",par)
+        # print('-----------')
+        # print("eqtn",eqtn)
+        # print('-----------')
+        # print("suit",suit)
+        # print('------###-----')
         ##################################################################################
 
         ##  Calculation remaining time of oil production
@@ -351,15 +367,15 @@ def dodca(df):
 
 
         #Calculating the total months till production exceeds
-        print('------------')
-        print("eqns",eqns)
-        print('------------')
-        print("params",params)
-        print('------------')
-        print("equations",equations)
-        print('------------')
-        print("last",last)
-        print('------------')
+        # print('------------')
+        # print("eqns",eqns)
+        # print('------------')
+        # print("params",params)
+        # print('------------')
+        # print("equations",equations)
+        # print('------------')
+        # print("last",last)
+        # print('------------')
         while equations[eqns[2]](last+months_left,params[2][0],
                         params[2][1])>equations[eqns[2]](last+months_left+1,
                                                     params[2][0],params[2][1]) > five_percent_of_max and months_left<=100:

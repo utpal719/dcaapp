@@ -51,6 +51,7 @@ def eq4(x,a,b):
     return (a+b*np.array(x)*(np.log(x)-1))/(np.array(x)*pow(np.log(x),2))
 
 def no_of_clusters(X,n=15):
+    scores = []
     try:
         for i in range(2,n+1):
             kmeans = KMeans(n_clusters=i, random_state=10).fit(X)
@@ -58,7 +59,8 @@ def no_of_clusters(X,n=15):
             sil_coeff = silhouette_score(X, label, metric='euclidean')
             scores.append(sil_coeff)
         index, value = max(enumerate(scores), key=operator.itemgetter(1))
-    except:
+    except Exception as ex:
+        print(ex)
         index, value = 0, 1.0
     scores = []
     
@@ -176,7 +178,7 @@ def dodca(df):
         # print(twothird)
         ## converting value of month to its index in data to use in furthur calculations
 
-        print('im centers', centers)
+        # print('im centers', centers)
 
         for k in range(len(centers)):
             for i in range(len(df)):
@@ -184,7 +186,7 @@ def dodca(df):
                     centers[k] = i
                     break
         
-        print('im centers', centers)
+        # print('im centers', centers)
 
         # for i in range(len(df)):
         #     if df['tmonth'][i] > onethird:

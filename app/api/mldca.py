@@ -61,9 +61,7 @@ def no_of_clusters(X,n=15):
         index, value = max(enumerate(scores), key=operator.itemgetter(1))
     except Exception as ex:
         print(ex)
-        index, value = 0, 1.0
-    scores = []
-    
+        index, value = 0, 1.0    
     return (index+2,value)
 
 
@@ -401,7 +399,7 @@ def dodca(df):
         #plt.figure()
 
         #x->start point  y->end point  i->which equation to use  j->It indicates which segment part.
-        for x,y,i,j in zip([0,*bkpoints],[*bkpoints,len(df)],eqns,range(3)):
+        for x,y,i,j in zip([0,*bkpoints],[*bkpoints,len(df)],eqns,range(nc+1)):
             #Plot curves
             #plt.plot(df['tmonth'][x:y],equations[i](df['tmonth'][x:y],params[j][0],params[j][1]),c=graphcolor[i+1])
             master[col_name]['decline'].append(df['tmonth'][x:y].values.tolist()) #.to_json(orient='values')
